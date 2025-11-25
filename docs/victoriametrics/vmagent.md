@@ -988,7 +988,7 @@ or add a review to the dashboard.
   Access to endpoint can be protected via `-configAuthKey` command-line flag.
 
 * Pages `http://vmagent-host:8429/remotewrite-relabel-config` and `http://vmagent-host:8429/remotewrite-url-relabel-config`
-  {{% available_from "#" %}} show current active `-remoteWrite.relabelConfig` and `-remoteWrite.urlRelabelConfig` configuration
+  {{% available_from "v1.129.0" %}} show current active `-remoteWrite.relabelConfig` and `-remoteWrite.urlRelabelConfig` configuration
   correspondingly. Access to endpoints can be protected via `-configAuthKey` command-line flag.
 
 * The `http://vmagent-host:8429/service-discovery` page could be useful for debugging the relabeling process for scrape targets.
@@ -1107,7 +1107,7 @@ Additional notes:
 
 See general recommendations regarding [security](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#security).
 
-vmagent's `/remotewrite-relabel-config` and `/remotewrite-url-relabel-config` endpoints {{% available_from "#" %}} 
+vmagent's `/remotewrite-relabel-config` and `/remotewrite-url-relabel-config` endpoints {{% available_from "v1.129.0" %}} 
 can be protected via `-configAuthKey` command-line flag.
 
 ### mTLS protection
@@ -1135,6 +1135,14 @@ For example, if `vmagent` needs to scrape thousands of targets in resource-const
   Another option is to set CPU limit in Kubernetes / Docker to the integer value bigger than the number of CPU cores used by `vmagent`.
   This reduces RAM and CPU usage when `vmagent` runs in an environment with a large number of available CPU cores. Note that it may be necessary to increase the `-remoteWrite.queues`
   command-line flag to a larger value if `GOMAXPROCS` is set to too small of a value, since by default `-remoteWrite.queues` is proportional to `GOMAXPROCS`.
+
+* Avoid increasing the value for the `-maxConcurrentRequests` command-line flag. The default value is optimized for the best performance in most cases,
+  even if many clients send data to `vmagent` via many concurrent connections and the number of these connections significantly exceeds the default value
+  for the `-maxConcurrentRequests` command-line flag. `vmagent` puts incoming requests into a wait queue if the number of concurrently executed requests
+  exceeds `-maxConcurrentRequests`. The pending requests at the wait queue do not consume CPU and do not consume significant amounts of RAM, so it is OK to have
+  thousands of pending requests in the wait queue. Pending requests in the wait queue are canceled if they wait for their exection for longer than
+  the duration specified in the `-insert.maxQueueDuration` command-line flag. Canceled requests can be [monitored](https://docs.victoriametrics.com/victoriametrics/vmagent/#monitoring)
+  via `vm_concurrent_insert_limit_timeout_total` metric.
 
 * Disable response compression at scrape targets via `-promscrape.disableCompression` command-line flag or via `disable_compression: true` option
   in the [scrape_config](https://docs.victoriametrics.com/victoriametrics/sd_configs/#scrape_configs). This reduces CPU usage at the cost of higher network bandwidth usage
